@@ -1,3 +1,1 @@
-# config-basicas-api-quarkus
-
-Projeto com configurações básicas para uma api quarkus.
+# para acesso à conta do cliente
