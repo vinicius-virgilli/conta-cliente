@@ -83,8 +83,7 @@ public class CadastroClienteValidador {
     private void validarISPBParticipante(ISPBParticipanteEnum ispbParticipante, List<String> campos) {
         if (ispbParticipante == null) {
             campos.add(MessageUtils.getString("cliente.ispbparticipante.obrigatorio"));
-        } else if (ispbParticipante == ISPBParticipanteEnum.CX || ispbParticipante == ISPBParticipanteEnum.IF) {
-
+        } else if (ispbParticipante != ISPBParticipanteEnum.CX & ispbParticipante != ISPBParticipanteEnum.IF) {
             campos.add(MessageUtils.getString("cliente.ispbparticipante.invalido"));
         }
     }

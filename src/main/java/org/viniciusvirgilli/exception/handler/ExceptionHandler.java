@@ -2,6 +2,8 @@ package org.viniciusvirgilli.exception.handler;
 
 import jakarta.ws.rs.core.Response;
 import jakarta.ws.rs.ext.Provider;
+import org.viniciusvirgilli.exception.ClienteJaCadastradoException;
+import org.viniciusvirgilli.exception.ClienteNaoEncontradoException;
 import org.viniciusvirgilli.exception.dto.ErroDetailCamposDto;
 import org.viniciusvirgilli.exception.dto.ErroDetailDto;
 import org.viniciusvirgilli.exception.ValidadorException;
@@ -39,6 +41,25 @@ public class ExceptionHandler implements ExceptionMapper<Exception> {
 
         }
 
+        if (cause instanceof ClienteJaCadastradoException cje) {
+            return Response.status(cje.getCodigoHTTP())
+                    .entity(ErroDetailDto.builder()
+                            .message(cje.getMessage())
+                            .status(cje.getCodigoHTTP())
+                            .timestamp(new Date())
+                            .build())
+                    .build();
+        }
+
+        if (cause instanceof ClienteNaoEncontradoException cje) {
+            return Response.status(cje.getStatus())
+                    .entity(ErroDetailDto.builder()
+                            .message(cje.getMessage())
+                            .status(cje.getStatus())
+                            .timestamp(new Date())
+                            .build())
+                    .build();
+        }
 
         return Response.status(Response.Status.INTERNAL_SERVER_ERROR)
                 .entity(ErroDetailDto.builder()

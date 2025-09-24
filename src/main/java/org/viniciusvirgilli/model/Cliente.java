@@ -15,7 +15,9 @@ import org.viniciusvirgilli.enums.ISPBParticipanteEnum;
 @AllArgsConstructor
 @NoArgsConstructor
 @Builder
-@Table(name = "cliente")
+@Table(name = "cliente",
+    uniqueConstraints = {@UniqueConstraint(columnNames = {"cpf_cnpj", "tipo_conta"})}
+)
 public class Cliente {
 
     @Id
@@ -48,10 +50,12 @@ public class Cliente {
     private Integer operacao;
 
     @NotNull
+    @Enumerated(EnumType.STRING)
     @Column(name = "tipo_conta")
     private TipoContaEnum tipoConta;
 
     @NotNull
+    @Enumerated(EnumType.STRING)
     @Column(name = "ispb_participante")
     private ISPBParticipanteEnum ispbParticipante;
 

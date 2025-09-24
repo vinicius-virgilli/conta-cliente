@@ -1,23 +1,21 @@
 package org.viniciusvirgilli.controller;
 
-import jakarta.ws.rs.Consumes;
-import jakarta.ws.rs.Path;
-import jakarta.ws.rs.Produces;
+import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.MediaType;
+import jakarta.ws.rs.core.Response;
 import lombok.extern.slf4j.Slf4j;
 import org.eclipse.microprofile.openapi.annotations.tags.Tag;
 
 import jakarta.inject.Inject;
 import org.viniciusvirgilli.dto.CadastroClienteDto;
+import org.viniciusvirgilli.dto.CreditaDto;
+import org.viniciusvirgilli.dto.DebitoDto;
+import org.viniciusvirgilli.enums.TipoContaEnum;
 import org.viniciusvirgilli.model.Cliente;
 import org.viniciusvirgilli.service.ClienteService;
-import jakarta.ws.rs.POST;
-import jakarta.ws.rs.GET;
-import java.util.Optional;
-import jakarta.ws.rs.PathParam;
 
 
-@Path("api/cliente")
+@Path("api/clientes")
 @Slf4j
 @Produces(MediaType.APPLICATION_JSON)
 @Consumes(MediaType.APPLICATION_JSON)
@@ -29,15 +27,50 @@ public class ClienteController {
 
     @POST
     @Path("/cadastrar")
-    public Cliente cadastrar(CadastroClienteDto cliente) {
-
-        return contaService.cadastrar(cliente);
+    public Response cadastrar(CadastroClienteDto cliente) {
+        Cliente clienteCadastrado = contaService.cadastrar(cliente);
+        return Response.status(Response.Status.CREATED).entity(clienteCadastrado).build();
     }
 
     @GET
-    @Path("/{cpfCnpj}")
-    public Optional<Cliente> buscar(@PathParam("cpfCnpj") String cpfCnpj) {
-        return contaService.findByCpfCnpj(cpfCnpj);
+    @Path("/por-cpfCnpj-tipoConta")
+    public Response buscar(
+            @QueryParam("cpfCnpj") String cpfCnpj,
+            @QueryParam("tipoConta") TipoContaEnum tipoConta
+            ) {
+        Cliente cliente = contaService.findByCpfCnpjAndTipoConta(cpfCnpj, tipoConta);
+        return Response.ok(cliente).build();
+    }
+
+    @GET
+    @Path("/por-contaId")
+    public Response buscarPorId(@QueryParam("contaId") Long contaId) {
+        Cliente cliente = contaService.findById(contaId);
+        return Response.ok(cliente).build();
+    }
+
+    @DELETE
+    @Path("/")
+    public Response deletar(
+            @QueryParam("cpfCnpj") String cpfCnpj,
+            @QueryParam("tipoConta") TipoContaEnum tipoConta
+    ) {
+        contaService.deletar(cpfCnpj, tipoConta);
+        return Response.noContent().build();
+    }
+
+    @PUT
+    @Path("/credita")
+    public Response creditar(CreditaDto creditaDto) {
+        contaService.creditar(creditaDto);
+        return Response.noContent().build();
+    }
+
+    @PUT
+    @Path("debita")
+    public Response debitar(DebitoDto debitoDto) {
+        contaService.debitar(debitoDto);
+        return Response.noContent().build();
     }
 
 }

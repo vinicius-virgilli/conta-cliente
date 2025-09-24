@@ -2,8 +2,14 @@ package org.viniciusvirgilli.service;
 
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
+import jakarta.transaction.Transactional;
 import lombok.extern.slf4j.Slf4j;
 import org.viniciusvirgilli.dto.CadastroClienteDto;
+import org.viniciusvirgilli.dto.CreditaDto;
+import org.viniciusvirgilli.dto.DebitoDto;
+import org.viniciusvirgilli.enums.TipoContaEnum;
+import org.viniciusvirgilli.exception.ClienteJaCadastradoException;
+import org.viniciusvirgilli.exception.ClienteNaoEncontradoException;
 import org.viniciusvirgilli.model.Cliente;
 import org.viniciusvirgilli.validador.CadastroClienteValidador;
 import org.viniciusvirgilli.dao.ClienteDao;
@@ -20,11 +26,86 @@ public class ClienteService {
     @Inject
     private ClienteDao clienteDao;
 
+    @Transactional
     public Cliente cadastrar(CadastroClienteDto cliente) {
         log.info("[CADASTRO] - Iniciando cadastro do cliente: {}", cliente);
 
         validador.validar(cliente);
 
+        if (clienteJaCadrastrado(cliente.getCpfCnpj(), cliente.getTipoConta())) {
+            log.info("[CADASTRO] - Cliente já cadastrado: {}", cliente);
+            throw new ClienteJaCadastradoException();
+        }
+
+        try {
+            Cliente entity = toEntity(cliente);
+
+            clienteDao.persist(entity);
+            log.info("[CADASTRO] - Cliente cadastrado com sucesso: {}", cliente);
+            return entity;
+        } catch (Exception e) {
+            log.error("[CADASTRO] - Erro ao cadastrar cliente: {}", cliente, e);
+            throw new RuntimeException("Erro ao cadastrar cliente", e);
+        }
+    }
+
+    public Cliente findById(Long id) {
+        log.info("[BUSCA] - Iniciando busca do cliente por ID: {}", id);
+        try {
+            Optional<Cliente> cliente = clienteDao.findByIdOptional(id);
+            if (cliente.isPresent()) {
+                log.info("[BUSCA] - Cliente encontrado por ID: {}", id);
+            } else {
+                log.info("[BUSCA] - Nenhum cliente encontrado por ID: {}", id);
+                throw new ClienteNaoEncontradoException();
+            }
+            return cliente.get();
+        } catch (Exception e) {
+            log.error("[BUSCA] - Erro ao buscar cliente por ID: {}", id, e);
+            throw new RuntimeException("Erro ao buscar cliente por ID", e);
+        }
+    }
+
+    public Cliente findByCpfCnpjAndTipoConta(String cpfCnpj, TipoContaEnum tipoConta) {
+        log.info("[BUSCA] - Iniciando busca do cliente por CPF/CNPJ e tipo de conta: {} - {}", cpfCnpj, tipoConta);
+        try {
+            Optional<Cliente> cliente = clienteDao.findByCpfCnpjAndTipoConta(cpfCnpj, tipoConta);
+            if (cliente.isPresent()) {
+                log.info("[BUSCA] - Cliente encontrado por CPF/CNPJ e tipo de conta: {} - {}", cpfCnpj, tipoConta);
+            } else {
+                log.info("[BUSCA] - Nenhum cliente encontrado por CPF/CNPJ e tipo de conta: {} - {}", cpfCnpj, tipoConta);
+                throw new ClienteNaoEncontradoException();
+            }
+            return cliente.get();
+        } catch (Exception e) {
+            log.error("[BUSCA] - Erro ao buscar cliente por CPF/CNPJ e tipo de conta: {} - {}", cpfCnpj, tipoConta, e);
+            throw new RuntimeException("Erro ao buscar cliente por CPF/CNPJ e tipo de conta", e);
+        }
+    }
+
+    @Transactional
+    public void deletar(String cpfCnpj, TipoContaEnum tipoConta) {
+        log.info("[DELETAR] - Iniciando deleção do cliente por CPF/CNPJ e tipo de conta: {} - {}", cpfCnpj, tipoConta);
+        try {
+            Optional<Cliente> cliente = clienteDao.findByCpfCnpjAndTipoConta(cpfCnpj, tipoConta);
+            if (cliente.isPresent()) {
+                clienteDao.delete(cliente.get());
+                log.info("[DELETAR] - Cliente deletado com sucesso: {} - {}", cpfCnpj, tipoConta);
+            } else {
+                log.info("[DELETAR] - Nenhum cliente encontrado para deleção: {} - {}", cpfCnpj, tipoConta);
+                throw new ClienteNaoEncontradoException();
+            }
+        } catch (Exception e) {
+            log.error("[DELETAR] - Erro ao deletar cliente por CPF/CNPJ e tipo de conta: {} - {}", cpfCnpj, tipoConta, e);
+            throw new RuntimeException("Erro ao deletar cliente por CPF/CNPJ e tipo de conta", e);
+        }
+    }
+
+    private boolean clienteJaCadrastrado(String cpfCnpj, TipoContaEnum tipoConta) {
+        return clienteDao.jaExisteConta(cpfCnpj, tipoConta);
+    }
+
+    private Cliente toEntity(CadastroClienteDto cliente) {
         Cliente entity = new Cliente();
         entity.setNome(cliente.getNome());
         entity.setCpfCnpj(cliente.getCpfCnpj());
@@ -34,28 +115,44 @@ public class ClienteService {
         entity.setTipoConta(cliente.getTipoConta());
         entity.setOperacao(cliente.getOperacao());
         entity.setIspbParticipante(cliente.getIspbParticipante());
-
-        clienteDao.persist(entity);
-
-        log.info("[CADASTRO] - Cliente cadastrado com sucesso: {}", cliente);
         return entity;
     }
 
-
-    public Optional<Cliente> findByCpfCnpj(String cpfCnpj) {
-        log.info("[BUSCA] - Iniciando busca do cliente por CPF/CNPJ: {}", cpfCnpj);
+    @Transactional
+    public void creditar(CreditaDto creditaDto) {
+        log.info("[CREDITAR] - Iniciando crédito do cliente: {}", creditaDto);
         try {
-            Optional<Cliente> cliente = clienteDao.findByCpfCnpj(cpfCnpj);
+            Optional<Cliente> cliente = clienteDao.findByCpfCnpjAndTipoConta(creditaDto.getCpfCnpj(), creditaDto.getTipoConta());
             if (cliente.isPresent()) {
-                log.info("[BUSCA] - Cliente encontrado por CPF/CNPJ: {}", cpfCnpj);
+                cliente.get().setSaldo(cliente.get().getSaldo().add(creditaDto.getValorCredito()));
+                clienteDao.persist(cliente.get());
+                log.info("[CREDITAR] - Crédito do cliente realizado com sucesso: {}", creditaDto);
             } else {
-                log.info("[BUSCA] - Nenhum cliente encontrado por CPF/CNPJ: {}", cpfCnpj);
-                throw new RuntimeException("Nenhum cliente encontrado por CPF/CNPJ");
+                log.info("[CREDITAR] - Nenhum cliente encontrado para crédito: {}", creditaDto);
+                throw new ClienteNaoEncontradoException();
             }
-            return cliente;
         } catch (Exception e) {
-            log.error("[BUSCA] - Erro ao buscar cliente por CPF/CNPJ: {}", cpfCnpj, e);
-            throw new RuntimeException("Erro ao buscar cliente por CPF/CNPJ", e);
+            log.error("[CREDITAR] - Erro ao creditar cliente: {}", creditaDto, e);
+            throw new RuntimeException("Erro ao creditar cliente", e);
+        }
+    }
+
+    @Transactional
+    public void debitar(DebitoDto debitoDto) {
+        log.info("[CREDITAR] - Iniciando crédito do cliente: {}", debitoDto);
+        try {
+            Optional<Cliente> cliente = clienteDao.findByCpfCnpjAndTipoConta(debitoDto.getCpfCnpj(), debitoDto.getTipoConta());
+            if (cliente.isPresent()) {
+                cliente.get().setSaldo(cliente.get().getSaldo().subtract(debitoDto.getValorDebito()));
+                clienteDao.persist(cliente.get());
+                log.info("[CREDITAR] - Crédito do cliente realizado com sucesso: {}", debitoDto);
+            } else {
+                log.info("[CREDITAR] - Nenhum cliente encontrado para crédito: {}", debitoDto);
+                throw new ClienteNaoEncontradoException();
+            }
+        } catch (Exception e) {
+            log.error("[CREDITAR] - Erro ao creditar cliente: {}", debitoDto, e);
+            throw new RuntimeException("Erro ao creditar cliente", e);
         }
     }
 }
