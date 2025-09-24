@@ -5,7 +5,7 @@ import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
 import lombok.extern.slf4j.Slf4j;
 import org.viniciusvirgilli.dto.CadastroClienteDto;
-import org.viniciusvirgilli.dto.CreditaDto;
+import org.viniciusvirgilli.dto.CreditoDto;
 import org.viniciusvirgilli.dto.DebitoDto;
 import org.viniciusvirgilli.enums.TipoContaEnum;
 import org.viniciusvirgilli.exception.ClienteJaCadastradoException;
@@ -13,6 +13,8 @@ import org.viniciusvirgilli.exception.ClienteNaoEncontradoException;
 import org.viniciusvirgilli.model.Cliente;
 import org.viniciusvirgilli.validador.CadastroClienteValidador;
 import org.viniciusvirgilli.dao.ClienteDao;
+import org.viniciusvirgilli.validador.CreditoDebitoValidador;
+
 import java.util.Optional;
 
 
@@ -21,7 +23,10 @@ import java.util.Optional;
 public class ClienteService {
 
     @Inject
-    private CadastroClienteValidador validador;
+    private CadastroClienteValidador cadastroClienteValidador;
+
+    @Inject
+    private CreditoDebitoValidador creditoDebitoValidador;
 
     @Inject
     private ClienteDao clienteDao;
@@ -30,7 +35,7 @@ public class ClienteService {
     public Cliente cadastrar(CadastroClienteDto cliente) {
         log.info("[CADASTRO] - Iniciando cadastro do cliente: {}", cliente);
 
-        validador.validar(cliente);
+        cadastroClienteValidador.validar(cliente);
 
         if (clienteJaCadrastrado(cliente.getCpfCnpj(), cliente.getTipoConta())) {
             log.info("[CADASTRO] - Cliente já cadastrado: {}", cliente);
@@ -119,20 +124,22 @@ public class ClienteService {
     }
 
     @Transactional
-    public void creditar(CreditaDto creditaDto) {
-        log.info("[CREDITAR] - Iniciando crédito do cliente: {}", creditaDto);
+    public void creditar(CreditoDto creditoDto) {
+        log.info("[CREDITAR] - Iniciando crédito do cliente: {}", creditoDto);
+        creditoDebitoValidador.validar(creditoDto.getCpfCnpj(), creditoDto.getTipoConta(), creditoDto.getValorCredito());
+
         try {
-            Optional<Cliente> cliente = clienteDao.findByCpfCnpjAndTipoConta(creditaDto.getCpfCnpj(), creditaDto.getTipoConta());
+            Optional<Cliente> cliente = clienteDao.findByCpfCnpjAndTipoConta(creditoDto.getCpfCnpj(), creditoDto.getTipoConta());
             if (cliente.isPresent()) {
-                cliente.get().setSaldo(cliente.get().getSaldo().add(creditaDto.getValorCredito()));
+                cliente.get().setSaldo(cliente.get().getSaldo().add(creditoDto.getValorCredito()));
                 clienteDao.persist(cliente.get());
-                log.info("[CREDITAR] - Crédito do cliente realizado com sucesso: {}", creditaDto);
+                log.info("[CREDITAR] - Crédito do cliente realizado com sucesso: {}", creditoDto);
             } else {
-                log.info("[CREDITAR] - Nenhum cliente encontrado para crédito: {}", creditaDto);
+                log.info("[CREDITAR] - Nenhum cliente encontrado para crédito: {}", creditoDto);
                 throw new ClienteNaoEncontradoException();
             }
         } catch (Exception e) {
-            log.error("[CREDITAR] - Erro ao creditar cliente: {}", creditaDto, e);
+            log.error("[CREDITAR] - Erro ao creditar cliente: {}", creditoDto, e);
             throw new RuntimeException("Erro ao creditar cliente", e);
         }
     }
@@ -140,6 +147,8 @@ public class ClienteService {
     @Transactional
     public void debitar(DebitoDto debitoDto) {
         log.info("[CREDITAR] - Iniciando crédito do cliente: {}", debitoDto);
+        creditoDebitoValidador.validar(debitoDto.getCpfCnpj(), debitoDto.getTipoConta(), debitoDto.getValorDebito());
+
         try {
             Optional<Cliente> cliente = clienteDao.findByCpfCnpjAndTipoConta(debitoDto.getCpfCnpj(), debitoDto.getTipoConta());
             if (cliente.isPresent()) {

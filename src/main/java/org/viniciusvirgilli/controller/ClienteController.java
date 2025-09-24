@@ -8,7 +8,7 @@ import org.eclipse.microprofile.openapi.annotations.tags.Tag;
 
 import jakarta.inject.Inject;
 import org.viniciusvirgilli.dto.CadastroClienteDto;
-import org.viniciusvirgilli.dto.CreditaDto;
+import org.viniciusvirgilli.dto.CreditoDto;
 import org.viniciusvirgilli.dto.DebitoDto;
 import org.viniciusvirgilli.enums.TipoContaEnum;
 import org.viniciusvirgilli.model.Cliente;
@@ -61,8 +61,8 @@ public class ClienteController {
 
     @PUT
     @Path("/credita")
-    public Response creditar(CreditaDto creditaDto) {
-        contaService.creditar(creditaDto);
+    public Response creditar(CreditoDto creditoDto) {
+        contaService.creditar(creditoDto);
         return Response.noContent().build();
     }
 
