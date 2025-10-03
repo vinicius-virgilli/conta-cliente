@@ -8,6 +8,7 @@ import org.viniciusvirgilli.enums.SituacaoContaEnum;
 import org.viniciusvirgilli.enums.TipoOperacaoEnum;
 import org.viniciusvirgilli.model.Cliente;
 import org.viniciusvirgilli.validador.CreditoDebitoValidador;
+import org.viniciusvirgilli.util.DataUtil;
 
 import java.math.BigDecimal;
 
@@ -57,7 +58,7 @@ public class OperacaoService {
         log.info("[OPERACAO] - Iniciando operação de débito: {}", dto);
             Cliente cliente = clienteService.findByCpfCnpjAndTipoConta(dto.getCpfCnpj(), dto.getTipoConta());
             if (cliente.getSituacaoConta() == SituacaoContaEnum.ATIVA) {
-                if (verificarLimitePix(cliente, dto.getValor())) {
+                if (isLimitePixPermitido(cliente, dto)) {
                     cliente.setSaldo(new BigDecimal(cliente.getSaldo().toString()).subtract(new BigDecimal(dto.getValor())));
                 }
             } else {
@@ -66,10 +67,25 @@ public class OperacaoService {
             }
     }
 
-    private boolean verificarLimitePix(Cliente cliente, CreditoDebitoDto dto) {
-        if (dto.isConectadoEmRedeSegura()) {
-            re
+    private boolean isLimitePixPermitido(Cliente cliente, CreditoDebitoDto dto) {
+        if (dto.getConectadoEmRedeSegura()) {
+            if (cliente.getLimitePixRedeSegura().compareTo(new BigDecimal(dto.getValor())) < 0) {
+                return false;
+            }
         }
-        return new BigDecimal(cliente.getLimite().toString()).compareTo(new BigDecimal(valor)) >= 0;
+        // precisamos verificar se é o período de dia ou o período de noite
+        // para isso, vamos verificar se a hora está entre 06:00 e 20:00
+        int hora = DataUtil.getHora(dto.getDataOperacao());
+        if (hora < 6 || hora >= 20) {
+            if (cliente.getLimitePixNoturno().compareTo(new BigDecimal(dto.getValor())) < 0) {
+                return false;
+            }
+        } else {
+            if (cliente.getLimitePixDiurno().compareTo(new BigDecimal(dto.getValor())) < 0) {
+                return false;
+            }
+        }
+
+        return true;
     }
 }

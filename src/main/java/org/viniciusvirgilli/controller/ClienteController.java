@@ -37,7 +37,7 @@ public class ClienteController {
 
     @GET
     @Path("/por-cpfCnpj-tipoConta")
-    public Response buscar(
+    public Response buscarPorCpfCnpjAndTipoConta(
             @QueryParam("cpfCnpj") String cpfCnpj,
             @QueryParam("tipoConta") TipoContaEnum tipoConta
             ) {
@@ -64,8 +64,41 @@ public class ClienteController {
 
     @PUT
     @Path("/operacao")
-    public Response creditar(CreditoDebitoDto creditoDto) {
+    public Response realizarCreditoDebito(CreditoDebitoDto creditoDto) {
         operacaoService.executar(creditoDto);
+        return Response.noContent().build();
+    }
+
+    @PUT
+    @Path("/limite/diurno")
+    public Response alterarLimiteDiurno(
+            @QueryParam("cpfCnpj") String cpfCnpj,
+            @QueryParam("tipoConta") TipoContaEnum tipoConta,
+            @QueryParam("limite") String limite
+    ) {
+        contaService.alterarLimiteDiurno(cpfCnpj, tipoConta, limite);
+        return Response.noContent().build();
+    }
+
+    @PUT
+    @Path("/limite/noturno")
+    public Response alterarLimiteNoturno(
+            @QueryParam("cpfCnpj") String cpfCnpj,
+            @QueryParam("tipoConta") TipoContaEnum tipoConta,
+            @QueryParam("limite") String limite
+    ) {
+        contaService.alterarLimiteNoturno(cpfCnpj, tipoConta, limite);
+        return Response.noContent().build();
+    }
+
+    @PUT
+    @Path("/limite/redeSegura")
+    public Response alterarLimiteRedeSegura(
+            @QueryParam("cpfCnpj") String cpfCnpj,
+            @QueryParam("tipoConta") TipoContaEnum tipoConta,
+            @QueryParam("limite") String limite
+    ) {
+        contaService.alterarLimiteRedeSegura(cpfCnpj, tipoConta, limite);
         return Response.noContent().build();
     }
 

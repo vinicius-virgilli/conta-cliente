@@ -13,4 +13,5 @@ public class CreditoDebitoDto {
     private String cpfCnpj;
     private TipoContaEnum tipoConta;
     private String valor;
+    private  Boolean conectadoEmRedeSegura;
 }

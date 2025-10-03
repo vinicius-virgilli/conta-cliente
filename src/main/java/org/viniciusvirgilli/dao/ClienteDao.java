@@ -3,7 +3,6 @@ package org.viniciusvirgilli.dao;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.persistence.EntityManager;
-import jakarta.ws.rs.PUT;
 import lombok.extern.slf4j.Slf4j;
 import org.viniciusvirgilli.enums.TipoContaEnum;
 import org.viniciusvirgilli.model.Cliente;

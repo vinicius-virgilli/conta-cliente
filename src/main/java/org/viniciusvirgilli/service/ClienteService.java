@@ -105,6 +105,64 @@ public class ClienteService {
         return clienteDao.jaExisteConta(cpfCnpj, tipoConta);
     }
 
+    @Transactional
+    public void alterarLimiteDiurno(String cpfCnpj, TipoContaEnum tipoConta, String limite) {
+        BigDecimal limiteDiurno;
+        try {
+            limiteDiurno = new BigDecimal(limite);
+        } catch (Exception e) {
+            log.error("[ALTERAR] - Erro ao converter limite diurno para BigDecimal: {}", limite, e);
+            throw new RuntimeException("Erro ao converter limite diurno para BigDecimal", e);
+        }
+
+        log.info("[ALTERAR] - Iniciando alteração do limite diurno do cliente por CPF/CNPJ e tipo de conta: {} - {}", cpfCnpj, tipoConta);
+        try {
+            Cliente cliente = findByCpfCnpjAndTipoConta(cpfCnpj, tipoConta);
+            cliente.setLimitePixDiurno(limiteDiurno);
+            clienteDao.persist(cliente);
+            log.info("[ALTERAR] - Limite diurno alterado com sucesso: {} - {}", cpfCnpj, tipoConta);
+        } catch (Exception e) {
+            log.error("[ALTERAR] - Erro ao alterar limite diurno do cliente por CPF/CNPJ e tipo de conta: {} - {}", cpfCnpj, tipoConta, e);
+            throw new RuntimeException("Erro ao alterar limite diurno do cliente por CPF/CNPJ e tipo de conta", e);
+        }
+    }
+
+    @Transactional
+    public void alterarLimiteNoturno(String cpfCnpj, TipoContaEnum tipoConta, String limite) {
+        BigDecimal limiteNoturno;
+        try {
+            limiteNoturno = new BigDecimal(limite);
+        } catch (Exception e) {
+            throw new RuntimeException("Erro ao converter limite para BigDecimal", e);
+        }
+
+        try {
+            Cliente cliente = findByCpfCnpjAndTipoConta(cpfCnpj, tipoConta);
+            cliente.setLimitePixNoturno(limiteNoturno);
+            clienteDao.persist(cliente);
+        } catch (Exception e) {
+            throw new RuntimeException("Erro ao alterar limite do cliente por CPF/CNPJ e tipo de conta", e);
+        }
+    }
+
+    @Transactional
+    public void alterarLimiteRedeSegura(String cpfCnpj, TipoContaEnum tipoConta, String limite) {
+        BigDecimal limiteRedeSegura;
+        try {
+            limiteRedeSegura = new BigDecimal(limite);
+        } catch (Exception e) {
+            throw new RuntimeException("Erro ao converter limite para BigDecimal", e);
+        }
+
+        try {
+            Cliente cliente = findByCpfCnpjAndTipoConta(cpfCnpj, tipoConta);
+            cliente.setLimitePixRedeSegura(limiteRedeSegura);
+            clienteDao.persist(cliente);
+        } catch (Exception e) {
+            throw new RuntimeException("Erro ao alterar limite do cliente por CPF/CNPJ e tipo de conta", e);
+        }
+    }
+
     private Cliente toEntity(CadastroClienteDto cliente) {
         Cliente entity = new Cliente();
         entity.setNome(cliente.getNome());
@@ -115,6 +173,10 @@ public class ClienteService {
         entity.setTipoConta(cliente.getTipoConta());
         entity.setOperacao(cliente.getOperacao());
         entity.setIspbParticipante(cliente.getIspbParticipante());
+        entity.setSituacaoConta(cliente.getSituacaoConta());
+        entity.setLimitePixDiurno(cliente.getLimitePixDiurno());
+        entity.setLimitePixNoturno(cliente.getLimitePixNoturno());
+        entity.setLimitePixRedeSegura(cliente.getLimitePixRedeSegura());
         return entity;
     }
 }

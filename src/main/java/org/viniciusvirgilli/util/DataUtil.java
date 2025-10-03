@@ -22,4 +22,8 @@ public class DataUtil {
             return false;
         }
     }
+
+    public static Integer getHora(String dataOperacao) {
+        return Integer.parseInt(dataOperacao.substring(11, 13));
+    }
 }
