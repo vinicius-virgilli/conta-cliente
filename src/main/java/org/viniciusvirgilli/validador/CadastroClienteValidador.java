@@ -4,7 +4,10 @@ import java.math.BigDecimal;
 import java.util.List;
 import java.util.ArrayList;
 
+import io.netty.util.internal.StringUtil;
+import lombok.NoArgsConstructor;
 import org.viniciusvirgilli.dto.CadastroClienteDto;
+import org.viniciusvirgilli.enums.SituacaoContaEnum;
 import org.viniciusvirgilli.exception.ValidadorException;
 import org.viniciusvirgilli.exception.dto.CamposComProblemasDto;
 import org.viniciusvirgilli.model.Cliente;
@@ -15,8 +18,9 @@ import org.viniciusvirgilli.enums.TipoContaEnum;
 import jakarta.enterprise.context.ApplicationScoped;
 import lombok.extern.slf4j.Slf4j;
 
-@ApplicationScoped
 @Slf4j
+@NoArgsConstructor
+@ApplicationScoped
 public class CadastroClienteValidador {
 
     public void validar(CadastroClienteDto cliente) {
@@ -31,6 +35,8 @@ public class CadastroClienteValidador {
         validarTipoConta(cliente.getTipoConta(), campos);
         validarOperacao(cliente.getOperacao(), campos);
         validarISPBParticipante(cliente.getIspbParticipante(), campos);
+        validarSituacaoConta(cliente.getSituacaoConta(), campos);
+        validarLimites(cliente.getLimitePixDiurno(), cliente.getLimitePixNoturno(), cliente.getLimitePixRedeSegura() ,campos);
 
         if (!campos.isEmpty()) {
             throw new ValidadorException(new CamposComProblemasDto(campos));
@@ -51,11 +57,15 @@ public class CadastroClienteValidador {
         }
     }
 
-    private void validarSaldo(BigDecimal saldo, List<String> campos) {
-        if (saldo == null) {
+    private void validarSaldo(String saldo, List<String> campos) {
+        if (StringUtil.isNullOrEmpty(saldo)) {
             campos.add(MessageUtils.getString("cliente.saldo.obrigatorio"));
-        } else if (saldo.compareTo(BigDecimal.ZERO) <= 0) {
-            campos.add(MessageUtils.getString("cliente.saldo.invalido"));
+        } else {
+            try {
+                new BigDecimal(saldo);
+            } catch (NumberFormatException e) {
+                campos.add(MessageUtils.getString("cliente.saldo.invalido"));
+            }
         }
     }
 
@@ -93,6 +103,36 @@ public class CadastroClienteValidador {
             campos.add(MessageUtils.getString("cliente.tipoconta.obrigatorio"));
         } else if (!(tipoConta == TipoContaEnum.CACC || tipoConta == TipoContaEnum.SVGS)) {
             campos.add(MessageUtils.getString("cliente.tipoconta.invalido"));
+        }
+    }
+
+    private void validarSituacaoConta(SituacaoContaEnum situacaoConta, List<String> campos) {
+        if (situacaoConta == null) {
+            campos.add(MessageUtils.getString("cliente.situacaoconta.obrigatorio"));
+        } 
+    }
+
+    private void validarLimites(BigDecimal limitePixDiurno, BigDecimal limitePixNoturno, BigDecimal limitePixRedeSegura, List<String> campos) {
+        if (limitePixDiurno == null) {
+            campos.add(MessageUtils.getString("cliente.limitepixdiurno.obrigatorio"));
+        } else if (limitePixDiurno.compareTo(BigDecimal.ZERO) < 0) {
+            campos.add(MessageUtils.getString("cliente.limitepixdiurno.invalido"));
+        }
+
+        if (limitePixNoturno == null) {
+            campos.add(MessageUtils.getString("cliente.limitepixnoturno.obrigatorio"));
+        } else if (limitePixNoturno.compareTo(BigDecimal.ZERO) < 0) {
+            campos.add(MessageUtils.getString("cliente.limitepixnoturno.invalido"));
+        }
+
+        if (limitePixRedeSegura == null) {
+            campos.add(MessageUtils.getString("cliente.limitepixredesegura.obrigatorio"));
+        } else if (limitePixRedeSegura.compareTo(BigDecimal.ZERO) < 0) {
+            campos.add(MessageUtils.getString("cliente.limitepixredesegura.invalido"));
+        } else if (limitePixRedeSegura.compareTo(limitePixDiurno) < 0) {
+            campos.add(MessageUtils.getString("cliente.limitepixredesegura.invalido"));
+        } else if (limitePixRedeSegura.compareTo(limitePixNoturno) < 0) {
+            campos.add(MessageUtils.getString("cliente.limitepixredesegura.invalido"));
         }
     }
 }

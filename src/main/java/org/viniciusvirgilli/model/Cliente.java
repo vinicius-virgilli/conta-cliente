@@ -5,6 +5,7 @@ import java.math.BigDecimal;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;
 import lombok.*;
+import org.viniciusvirgilli.enums.SituacaoContaEnum;
 import org.viniciusvirgilli.enums.TipoContaEnum;
 import org.viniciusvirgilli.enums.ISPBParticipanteEnum;
 
@@ -58,5 +59,21 @@ public class Cliente {
     @Enumerated(EnumType.STRING)
     @Column(name = "ispb_participante")
     private ISPBParticipanteEnum ispbParticipante;
+
+    @NotNull
+    @Enumerated(EnumType.STRING)
+    @Column(name = "situacao_conta")
+    private SituacaoContaEnum situacaoConta;
+
+    @NotNull
+    @Column(name = "limite_pix_diurno")
+    private BigDecimal limitePixDiurno;
+
+    @NotNull
+    @Column(name = "limite_pix_noturno")
+    private BigDecimal limitePixNoturno;
+
+    @Column(name = "limite_pix_rede_segura")
+    private BigDecimal limitePixRedeSegura;
 
 }
