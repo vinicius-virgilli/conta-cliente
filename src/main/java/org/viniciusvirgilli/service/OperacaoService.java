@@ -2,10 +2,13 @@ package org.viniciusvirgilli.service;
 
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
+import jakarta.transaction.Transactional;
 import lombok.extern.slf4j.Slf4j;
 import org.viniciusvirgilli.dto.CreditoDebitoDto;
 import org.viniciusvirgilli.enums.SituacaoContaEnum;
 import org.viniciusvirgilli.enums.TipoOperacaoEnum;
+import org.viniciusvirgilli.exception.ForaDoLimiteException;
+import org.viniciusvirgilli.exception.SaldoNaoSuficienteException;
 import org.viniciusvirgilli.model.Cliente;
 import org.viniciusvirgilli.validador.CreditoDebitoValidador;
 import org.viniciusvirgilli.util.DataUtil;
@@ -22,6 +25,7 @@ public class OperacaoService {
     @Inject
     ClienteService clienteService;
 
+    @Transactional
     public void executar(CreditoDebitoDto dto) {
         validador.validar(dto);
 
@@ -44,9 +48,10 @@ public class OperacaoService {
             Cliente cliente = clienteService.findByCpfCnpjAndTipoConta(dto.getCpfCnpj(), dto.getTipoConta());
             if (cliente.getSituacaoConta() == SituacaoContaEnum.ATIVA) {
                 cliente.setSaldo(new BigDecimal(cliente.getSaldo().toString()).add(new BigDecimal(dto.getValor())));
+                clienteService.atualizarCliente(cliente);
             } else {
-                log.error("[OPERACAO] - Cliente não está ativa: {}", dto);
-                throw new RuntimeException("Cliente não está ativa");
+                log.error("[OPERACAO] - Cliente não está ativo: {}", dto);
+                throw new RuntimeException("Cliente não está ativo");
             }
         } catch (Exception e) {
             log.error("[OPERACAO] - Cliente não encontrado: {}", dto, e);
@@ -58,12 +63,20 @@ public class OperacaoService {
         log.info("[OPERACAO] - Iniciando operação de débito: {}", dto);
             Cliente cliente = clienteService.findByCpfCnpjAndTipoConta(dto.getCpfCnpj(), dto.getTipoConta());
             if (cliente.getSituacaoConta() == SituacaoContaEnum.ATIVA) {
+                if (saldoNaoSuficiente(cliente, dto)) {
+                    log.error("[OPERACAO] - Saldo insuficiente: {}", dto);
+                    throw new SaldoNaoSuficienteException("Saldo insuficiente");
+                }
                 if (isLimitePixPermitido(cliente, dto)) {
                     cliente.setSaldo(new BigDecimal(cliente.getSaldo().toString()).subtract(new BigDecimal(dto.getValor())));
+                    clienteService.atualizarCliente(cliente);
+                } else {
+                    log.error("[OPERACAO] - Limite de PIX não permitido: {}", dto);
+                    throw new ForaDoLimiteException("Limite de PIX não permitido");
                 }
             } else {
-                log.error("[OPERACAO] - Cliente não está ativa: {}", dto);
-                throw new RuntimeException("Cliente não está ativa");
+                log.error("[OPERACAO] - Cliente não está ativo: {}", dto);
+                throw new RuntimeException("Cliente não está ativo");
             }
     }
 
@@ -71,6 +84,8 @@ public class OperacaoService {
         if (dto.getConectadoEmRedeSegura()) {
             if (cliente.getLimitePixRedeSegura().compareTo(new BigDecimal(dto.getValor())) < 0) {
                 return false;
+            } else {
+                return true;
             }
         }
         // precisamos verificar se é o período de dia ou o período de noite
@@ -87,5 +102,9 @@ public class OperacaoService {
         }
 
         return true;
+    }
+
+    private boolean saldoNaoSuficiente(Cliente cliente, CreditoDebitoDto dto) {
+        return cliente.getSaldo().compareTo(new BigDecimal(dto.getValor())) < 0;
     }
 }

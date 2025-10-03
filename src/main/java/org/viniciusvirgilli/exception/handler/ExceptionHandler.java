@@ -2,11 +2,9 @@ package org.viniciusvirgilli.exception.handler;
 
 import jakarta.ws.rs.core.Response;
 import jakarta.ws.rs.ext.Provider;
-import org.viniciusvirgilli.exception.ClienteJaCadastradoException;
-import org.viniciusvirgilli.exception.ClienteNaoEncontradoException;
+import org.viniciusvirgilli.exception.*;
 import org.viniciusvirgilli.exception.dto.ErroDetailCamposDto;
 import org.viniciusvirgilli.exception.dto.ErroDetailDto;
-import org.viniciusvirgilli.exception.ValidadorException;
 
 import jakarta.ws.rs.ext.ExceptionMapper;
 
@@ -60,6 +58,28 @@ public class ExceptionHandler implements ExceptionMapper<Exception> {
                             .build())
                     .build();
         }
+
+        if (cause instanceof ForaDoLimiteException fora) {
+            return Response.status(fora.getStatus())
+                    .entity(ErroDetailDto.builder()
+                            .message(fora.getMessage())
+                            .status(fora.getStatus())
+                            .timestamp(new Date())
+                            .build())
+                    .build();
+        }
+
+        if (cause instanceof SaldoNaoSuficienteException saldo) {
+            return Response.status(saldo.getStatus())
+                    .entity(ErroDetailDto.builder()
+                            .message(saldo.getMessage())
+                            .status(saldo.getStatus())
+                            .timestamp(new Date())
+                            .build())
+                    .build();
+        }
+
+
 
         return Response.status(Response.Status.INTERNAL_SERVER_ERROR)
                 .entity(ErroDetailDto.builder()

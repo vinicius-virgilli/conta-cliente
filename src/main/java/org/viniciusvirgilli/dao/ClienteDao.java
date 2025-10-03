@@ -19,6 +19,8 @@ public class ClienteDao {
 
     public void persist(Cliente entity) { em.persist(entity); }
 
+    public void merge(Cliente entity) { em.merge(entity); }
+
     public List<Cliente> findAll() {
         return em.createQuery("SELECT c FROM Cliente c ORDEM BY p.id",
                 Cliente.class).getResultList();

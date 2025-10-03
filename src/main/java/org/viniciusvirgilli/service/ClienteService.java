@@ -163,6 +163,12 @@ public class ClienteService {
         }
     }
 
+    public void atualizarCliente(Cliente cliente) {
+        log.info("[ATUALIZAR] - Iniciando atualização do cliente: {}", cliente);;
+        clienteDao.merge(cliente);
+        log.info("[ATUALIZAR] - Cliente atualizado com sucesso: {}", cliente);
+    }
+
     private Cliente toEntity(CadastroClienteDto cliente) {
         Cliente entity = new Cliente();
         entity.setNome(cliente.getNome());
