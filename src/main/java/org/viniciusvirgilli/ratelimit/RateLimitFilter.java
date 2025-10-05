@@ -2,6 +2,7 @@ package org.viniciusvirgilli.ratelimit;
 
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
+import com.github.benmanes.caffeine.cache.RemovalCause;
 import io.github.bucket4j.Bandwidth;
 import io.github.bucket4j.Bucket;
 import io.github.bucket4j.Refill;
@@ -48,7 +49,7 @@ public class RateLimitFilter implements ContainerRequestFilter, ContainerRespons
 
     // bucket = balde
     private final Cache<String, Bucket> baldes = Caffeine.newBuilder()
-            .expireAfterAccess(Duration.ofDays(1))
+            .expireAfterAccess(Duration.ofHours(5))
             .build();
 
     private final Map<String, Long> ipsBloqueados = new ConcurrentHashMap<>();
